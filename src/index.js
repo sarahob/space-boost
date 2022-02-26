@@ -113,7 +113,7 @@ function create() {
   });
 
   this.physics.add.collider(player, goal, (p, x) => {
-    this.add.text(80, 350, "You escaped!/nwell done!", {
+    this.add.text(80, 350, "You escaped!\nWell done!", {
       fontFamily: "Arial",
       fontSize: 32,
       color: "#ffffff",
