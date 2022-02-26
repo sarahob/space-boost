@@ -8,4 +8,4 @@
 
 The project is bootstrapped using this [phaser-webpack-template](https://github.com/photonstorm/phaser3-project-template.)
 
-![gif of game](https://github.com/sarahob/space-boost/spaceboost.gif "Gameplay Preview")
+![gif of game](https://github.com/sarahob/space-boost/blob/master/spaceboost.gif)
