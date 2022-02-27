@@ -1,6 +1,6 @@
 {
   "name": "sarahob-gamejam-2022",
-  "version": "1.0",
+  "version": "1.0.1",
   "description": "Phaser game built for Brackeys game jam 2022.",
   "main": "src/index.js",
   "scripts": {

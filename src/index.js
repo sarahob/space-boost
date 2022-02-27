@@ -2,16 +2,19 @@ import Phaser from "phaser";
 import playerSprite from "./assets/player-sprite.png";
 import platformDanger from "./assets/platform-danger.png";
 import warp from "./assets/warp.png";
+import gameOverScreenLose from "./assets/game-over.png";
+import gameOverScreenWin from "./assets/game-over-win.png";
 import floatSFX from "./assets/moving.wav";
 import themeSFX from "./assets/theme.wav";
 import deadSFX from "./assets/dead.wav";
 
-let platforms;
-let player;
-let floatSound;
-let themeMusic;
-let goal;
-let deathSound;
+let gameState = {
+  objects: { platforms: null, player: null, warpPoint: null, score: null },
+  sounds: { float: null, theme: null, death: null },
+  input: { kb: null },
+  gameover: false,
+  score: 0,
+};
 
 const platformCoord_1 = [
   [80, 600],
@@ -30,7 +33,11 @@ const platformCoord_1 = [
 
 function generatePlatforms() {
   platformCoord_1.forEach((arrCoord) => {
-    platforms.create(arrCoord[0], arrCoord[1], "platform-danger");
+    this.gameState.objects.platforms.create(
+      arrCoord[0],
+      arrCoord[1],
+      "platform-danger"
+    );
   });
 }
 
@@ -40,23 +47,58 @@ function preload() {
   this.load.audio("death", deadSFX);
   this.load.image("warp", warp);
   this.load.image("platform-danger", platformDanger);
+  this.load.image("game-over", gameOverScreenLose);
+  this.load.image("game-over-win", gameOverScreenWin);
   this.load.spritesheet("player", playerSprite, {
     frameWidth: 32,
-    frameHeight: 32,
+    frameHeight: 35,
   });
 }
 
 function create() {
-  goal = this.physics.add.group({ immovable: true, allowGravity: false });
-  goal.create(175, 50, "warp");
+  // set up game state
+  this.gameState = gameState;
 
-  platforms = this.physics.add.group({ immovable: true, allowGravity: false });
+  this.gameState.input.kb = this.input.keyboard.createCursorKeys();
 
-  const callGenerate = generatePlatforms.bind(this);
+  this.gameState.objects.warpPoint = this.physics.add.group({
+    immovable: true,
+    allowGravity: false,
+  });
 
-  callGenerate();
+  this.gameState.objects.warpPoint.create(175, 50, "warp");
 
-  player = this.physics.add.sprite(185, 840, "player");
+  this.gameState.objects.platforms = this.physics.add.group({
+    immovable: true,
+    allowGravity: false,
+  });
+
+  this.gameState.objects.player = this.physics.add.sprite(185, 840, "player");
+
+  this.gameState.score = 0;
+
+  this.gameState.sounds.float = this.sound.add("float");
+  this.gameState.sounds.theme = this.sound.add("theme");
+  this.gameState.sounds.death = this.sound.add("death");
+
+  this.gameState.objects.score = this.add.text(
+    284,
+    16,
+    `score ${gameState.score}`,
+    {
+      fontFamily: "Arial",
+      fontSize: "24px",
+      fill: "#E5E5E5",
+    }
+  );
+
+  // handle platforms
+  const drawPlatforms = generatePlatforms.bind(this);
+
+  drawPlatforms();
+
+  const { player, platforms, warpPoint } = this.gameState.objects;
+
   player.setBounce(0.1);
   player.setGravityY(200);
 
@@ -64,7 +106,7 @@ function create() {
   this.anims.create({
     key: "walk-right",
     frames: this.anims.generateFrameNumbers("player", {
-      frames: [6, 5, 4],
+      frames: [4, 3],
       suffix: ".png",
     }),
     frameRate: 7,
@@ -74,7 +116,7 @@ function create() {
   this.anims.create({
     key: "idle",
     frames: this.anims.generateFrameNumbers("player", {
-      frames: [3],
+      frames: [2],
       suffix: ".png",
     }),
     frameRate: 7,
@@ -84,51 +126,23 @@ function create() {
   this.anims.create({
     key: "walk-left",
     frames: this.anims.generateFrameNumbers("player", {
-      frames: [2, 1, 0],
+      frames: [1, 0],
       suffix: ".png",
     }),
     frameRate: 7,
     repeat: -1,
   });
 
+  // add colliders
+
   player.setCollideWorldBounds(true);
 
-  // colliders
-  this.physics.add.collider(player, platforms, (p, x) => {
-    deathSound.play();
+  const {
+    sounds: { death },
+    input: { kb },
+  } = gameState;
 
-    this.add.text(80, 350, "Game Over.\nClick to play again.", {
-      fontFamily: "Arial",
-      fontSize: 32,
-      color: "#ffffff",
-    });
-
-    this.physics.pause();
-    this.anims.pauseAll();
-    this.tweens.pauseAll();
-
-    this.input.on("pointerup", () => {
-      this.scene.restart();
-    });
-  });
-
-  this.physics.add.collider(player, goal, (p, x) => {
-    this.add.text(80, 350, "You escaped!\nWell done!", {
-      fontFamily: "Arial",
-      fontSize: 32,
-      color: "#ffffff",
-    });
-
-    this.physics.pause();
-    this.anims.pauseAll();
-    this.tweens.pauseAll();
-
-    this.input.on("pointerup", () => {
-      this.anims.resumeAll();
-      this.scene.restart();
-    });
-  });
-
+  // add tweens for platforms
   platforms.children.entries.reverse().forEach((p, i) => {
     if (i % 2 === 0) {
       this.tweens.add({
@@ -153,46 +167,98 @@ function create() {
     }
   });
 
-  floatSound = this.sound.add("float");
-  themeMusic = this.sound.add("theme");
-  deathSound = this.sound.add("death");
+  // colliders
+  this.physics.add.overlap(player, platforms, (p, x) => {
+    gameState.gameover = true;
+
+    death.play();
+
+    this.add.image(195, 350, "game-over");
+
+    this.physics.pause();
+    this.anims.pauseAll();
+    this.tweens.pauseAll();
+  });
+
+  this.physics.add.overlap(player, warpPoint, (p, x) => {
+    gameState.gameover = true;
+    this.add.image(195, 350, "game-over-win");
+
+    this.physics.pause();
+    this.anims.pauseAll();
+    this.tweens.pauseAll();
+  });
 }
 
 function update() {
-  if (!themeMusic.isPlaying) {
-    themeMusic.play();
+  const {
+    sounds,
+    objects: { player, warpPoint },
+    input: { kb },
+  } = this.gameState;
+
+  if (!sounds.theme.isPlaying) {
+    sounds.theme.play();
   }
 
-  goal.children.entries[0].rotation += 0.1;
+  warpPoint.children.entries[0].rotation += 0.1;
 
-  const kb = this.input.keyboard.createCursorKeys();
+  if (Phaser.Input.Keyboard.JustDown(kb.left)) {
+    gameState.score++;
+  }
+
+  if (Phaser.Input.Keyboard.JustDown(kb.right)) {
+    gameState.score++;
+  }
+
   if (kb.left.isDown) {
-    if (!floatSound.isPlaying) {
-      floatSound.play();
+    this.gameState.objects.score.setText(`score: ${this.gameState.score}`);
+
+    if (!sounds.float.isPlaying) {
+      sounds.float.play();
     }
     player.setVelocityX(-100);
     player.setVelocityY(-100);
+
+    player.setImmovable(true);
+    player.body.setAllowGravity(false);
+
     player.play("walk-left", true);
   } else if (kb.right.isDown) {
-    if (!floatSound.isPlaying) {
-      floatSound.play();
+    this.gameState.objects.score.setText(`score: ${this.gameState.score}`);
+
+    if (!sounds.float.isPlaying) {
+      sounds.float.play();
     }
     player.setVelocityX(100);
     player.setVelocityY(-100);
+
+    player.setImmovable(true);
+    player.body.setAllowGravity(false);
+
     player.play("walk-right", true);
   } else {
-    if (floatSound.isPlaying) {
-      floatSound.stop();
+    if (sounds.float.isPlaying) {
+      sounds.float.stop();
     }
+    player.setImmovable(false);
+    player.body.setAllowGravity(true);
     player.setVelocityX(0);
     player.play("idle");
+  }
+
+  if (kb.up.isDown) {
+    if (this.gameState.gameover) {
+      gameState.gameover = false;
+      this.scene.restart();
+    }
   }
 }
 
 const config = {
   type: Phaser.AUTO,
   width: 390,
-  height: 844,
+  height: 800,
   backgroundColor: "#292B2C",
   physics: {
     default: "arcade",
