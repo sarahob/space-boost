@@ -7,10 +7,11 @@ import gameOverScreenWin from "./assets/game-over-win.png";
 import floatSFX from "./assets/moving.wav";
 import themeSFX from "./assets/theme.wav";
 import deadSFX from "./assets/dead.wav";
+import escapeSFX from "./assets/escape.wav";
 
 let gameState = {
   objects: { platforms: null, player: null, warpPoint: null, score: null },
-  sounds: { float: null, theme: null, death: null },
+  sounds: { float: null, theme: null, death: null, escape: null },
   input: { kb: null },
   gameover: false,
   score: 0,
@@ -45,6 +46,7 @@ function preload() {
   this.load.audio("float", floatSFX);
   this.load.audio("theme", themeSFX);
   this.load.audio("death", deadSFX);
+  this.load.audio("escape", escapeSFX);
   this.load.image("warp", warp);
   this.load.image("platform-danger", platformDanger);
   this.load.image("game-over", gameOverScreenLose);
@@ -80,6 +82,7 @@ function create() {
   this.gameState.sounds.float = this.sound.add("float");
   this.gameState.sounds.theme = this.sound.add("theme");
   this.gameState.sounds.death = this.sound.add("death");
+  this.gameState.sounds.escape = this.sound.add("escape");
 
   this.gameState.objects.score = this.add.text(
     284,
@@ -138,7 +141,7 @@ function create() {
   player.setCollideWorldBounds(true);
 
   const {
-    sounds: { death },
+    sounds: { death, escape },
     input: { kb },
   } = gameState;
 
@@ -168,10 +171,9 @@ function create() {
   });
 
   // colliders
-  this.physics.add.overlap(player, platforms, (p, x) => {
-    gameState.gameover = true;
-
+  this.physics.add.overlap(player, platforms, () => {
     death.play();
+    gameState.gameover = true;
 
     this.add.image(195, 350, "game-over");
 
@@ -180,8 +182,10 @@ function create() {
     this.tweens.pauseAll();
   });
 
-  this.physics.add.overlap(player, warpPoint, (p, x) => {
+  this.physics.add.overlap(player, warpPoint, () => {
+    escape.play();
     gameState.gameover = true;
+
     this.add.image(195, 350, "game-over-win");
 
     this.physics.pause();
@@ -212,31 +216,35 @@ function update() {
   }
 
   if (kb.left.isDown) {
-    this.gameState.objects.score.setText(`score: ${this.gameState.score}`);
+    if (!this.gameState.gameover) {
+      this.gameState.objects.score.setText(`score: ${this.gameState.score}`);
 
-    if (!sounds.float.isPlaying) {
-      sounds.float.play();
+      if (!sounds.float.isPlaying) {
+        sounds.float.play();
+      }
+      player.setVelocityX(-100);
+      player.setVelocityY(-100);
+
+      player.setImmovable(true);
+      player.body.setAllowGravity(false);
+
+      player.play("walk-left", true);
     }
-    player.setVelocityX(-100);
-    player.setVelocityY(-100);
-
-    player.setImmovable(true);
-    player.body.setAllowGravity(false);
-
-    player.play("walk-left", true);
   } else if (kb.right.isDown) {
-    this.gameState.objects.score.setText(`score: ${this.gameState.score}`);
+    if (!this.gameState.gameover) {
+      this.gameState.objects.score.setText(`score: ${this.gameState.score}`);
 
-    if (!sounds.float.isPlaying) {
-      sounds.float.play();
+      if (!sounds.float.isPlaying) {
+        sounds.float.play();
+      }
+      player.setVelocityX(100);
+      player.setVelocityY(-100);
+
+      player.setImmovable(true);
+      player.body.setAllowGravity(false);
+
+      player.play("walk-right", true);
     }
-    player.setVelocityX(100);
-    player.setVelocityY(-100);
-
-    player.setImmovable(true);
-    player.body.setAllowGravity(false);
-
-    player.play("walk-right", true);
   } else {
     if (sounds.float.isPlaying) {
       sounds.float.stop();
@@ -245,6 +253,10 @@ function update() {
     player.body.setAllowGravity(true);
     player.setVelocityX(0);
     player.play("idle");
+  }
+
+  if (this.gameState.gameover) {
+    sounds.theme.stop();
   }
 
   if (kb.up.isDown) {
