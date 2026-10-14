@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import * as Phaser from "phaser";
 import playerSprite from "./assets/player-sprite.png";
 import platformDanger from "./assets/platform-danger.png";
 import warp from "./assets/warp.png";
@@ -129,7 +129,7 @@ function create() {
     });
   });
 
-  platforms.children.entries.reverse().forEach((p, i) => {
+  Array.from(platforms.children).reverse().forEach((p, i) => {
     if (i % 2 === 0) {
       this.tweens.add({
         targets: p,
@@ -163,7 +163,7 @@ function update() {
     themeMusic.play();
   }
 
-  goal.children.entries[0].rotation += 0.1;
+  Array.from(goal.children)[0].rotation += 0.1;
 
   const kb = this.input.keyboard.createCursorKeys();
   if (kb.left.isDown) {

@@ -6,6 +6,8 @@
 
 ⚠️ Be careful not to hit the moving obstacles though!
 
-The project is bootstrapped using this [phaser-webpack-template](https://github.com/photonstorm/phaser3-project-template.)
+Built with [Phaser 4](https://phaser.io/) and [Vite](https://vitejs.dev/).
+
+Run `npm install` then `npm start` for a dev server, or `npm run build` for a production build.
 
 ![gif of game](https://github.com/sarahob/space-boost/blob/master/spaceboost.gif)
